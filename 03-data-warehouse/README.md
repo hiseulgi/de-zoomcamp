@@ -199,3 +199,33 @@ You may choose clustering over partitioning when partitioning results in a small
 
 BigQuery has _automatic reclustering_: when new data is written to a table, it can be written to blocks that contain key ranges that overlap with the key ranges in previously written blocks, which weaken the sort property of the table. BQ will perform automatic reclustering in the background to restore the sort properties of the table.
 * For partitioned tables, clustering is maintaned for data within the scope of each partition.
+
+## Best Practices
+
+Here's a list of [best practices for BigQuery](https://cloud.google.com/bigquery/docs/best-practices-performance-overview):
+
+* Cost reduction
+  * Avoid `SELECT *` . Reducing the amount of columns to display will drastically reduce the amount of processed data and lower costs.
+  * Price your queries before running them.
+  * Use clustered and/or partitioned tables if possible.
+  * Use [streaming inserts](https://cloud.google.com/bigquery/streaming-data-into-bigquery) with caution. They can easily increase cost.
+  * [Materialize query results](https://cloud.google.com/bigquery/docs/materialized-views-intro) in different stages.
+* Query performance
+  * Filter on partitioned columns.
+  * [Denormalize data](https://cloud.google.com/blog/topics/developers-practitioners/bigquery-explained-working-joins-nested-repeated-data).
+  * Use [nested or repeated columns](https://cloud.google.com/blog/topics/developers-practitioners/bigquery-explained-working-joins-nested-repeated-data).
+  * Use external data sources appropiately. Constantly reading data from a bucket may incur in additional costs and has worse performance.
+  * Reduce data before using a `JOIN`.
+  * Do not threat `WITH` clauses as [prepared statements](https://www.wikiwand.com/en/Prepared_statement).
+  * Avoid [oversharding tables](https://cloud.google.com/bigquery/docs/partitioned-tables#dt_partition_shard).
+  * Avoid JavaScript user-defined functions.
+  * Use [approximate aggregation functions](https://cloud.google.com/bigquery/docs/reference/standard-sql/approximate_aggregate_functions) rather than complete ones such as [HyperLogLog++](https://cloud.google.com/bigquery/docs/reference/standard-sql/hll_functions).
+  * Order statements should be the last part of the query.
+  * [Optimize join patterns](https://cloud.google.com/bigquery/docs/best-practices-performance-compute#optimize_your_join_patterns).
+  * Place the table with the _largest_ number of rows first, followed by the table with the _fewest_ rows, and then place the remaining tables by decreasing size.
+    * This is due to how BigQuery works internally: the first table will be distributed evenly and the second table will be broadcasted to all the nodes. Check the [Internals section](#internals) for more details.
+
+## Acknowledgements
+
+- [Data Engineering Zoomcamp - Week 3](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/03-data-warehouse)
+- [Notes by Alvaro Navas](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/3_data_warehouse.md)
