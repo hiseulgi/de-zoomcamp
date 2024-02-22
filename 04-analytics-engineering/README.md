@@ -324,6 +324,149 @@ where vendorid is not null
 ```
 * The macro is replaced by the code contained within the macro definition as well as any variables that we may have passed to the macro parameters.
 
+#### Packages
+
+Macros can be exported to ***packages***, similarly to how classes and functions can be exported to libraries in other languages. Packages contain standalone dbt projects with models and macros that tackle a specific problem area.
+
+When you add a package to your project, the package's models and macros become part of your own project. A list of useful packages can be found in the [dbt package hub](https://hub.getdbt.com/).
+
+To use a package, you must first create a `packages.yml` file in the root of your work directory. Here's an example:
+```yaml
+packages:
+  - package: dbt-labs/dbt_utils
+    version: 0.8.0
+```
+
+After declaring your packages, you need to install them by running the `dbt deps` command either locally or on dbt Cloud.
+
+You may access macros inside a package in a similar way to how Python access class methods:
+```sql
+select
+    {{ dbt_utils.surrogate_key(['vendorid', 'lpep_pickup_datetime']) }} as tripid,
+    cast(vendorid as integer) as vendorid,
+    -- ...
+```
+* The `surrogate_key()` macro generates a hashed [surrogate key](https://www.geeksforgeeks.org/surrogate-key-in-dbms/) with the specified fields in the arguments.
+
+#### Variables
+
+Like most other programming languages, ***variables*** can be defined and used across our project.
+
+Variables can be defined in 2 different ways:
+* Under the `vars` keyword inside `dbt_project.yml`.
+    ```yaml
+    vars:
+        payment_type_values: [1, 2, 3, 4, 5, 6]
+    ```
+* As arguments when building or running your project.
+    ```sh
+    dbt build --m <your-model.sql> --var 'is_test_run: false'
+    ```
+
+Variables can be used with the `var()` macro. For example:
+```sql
+{% if var('is_test_run', default=true) %}
+
+    limit 100
+
+{% endif %}
+```
+* In this example, the default value for `is_test_run` is `true`; in the absence of a variable definition either on the `dbt_project.yml` file or when running the project, then `is_test_run` would be `true`.
+* Since we passed the value `false` when runnning `dbt build`, then the `if` statement would evaluate to `false` and the code within would not run.
+
+### Referencing older models in new models
+
+>Note: you will need the [Taxi Zone Lookup Table seed](https://s3.amazonaws.com/nyc-tlc/misc/taxi+_zone_lookup.csv), the [staging models and schema](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/week_4_analytics_engineering/taxi_rides_ny/models/staging) and the [macro files](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/week_4_analytics_engineering/taxi_rides_ny/macros) for this section.
+
+The models we've created in the _staging area_ are for normalizing the fields of both green and yellow taxis. With normalized field names we can now join the 2 together in more complex ways.
+
+The `ref()` macro is used for referencing any undedrlying tables and views that we've created, so we can reference seeds as well as models using this macro:
+
+```sql
+{{ config(materialized='table') }}
+
+select
+    locationid,
+    borough,
+    zone,
+    replace(service_zone, 'Boro', 'Green') as service_zone
+from {{ ref('taxi_zone_lookup') }}
+```
+* This model references the `taxi_zone_lookup` table created from the taxi zone lookup CSV seed.
+
+```sql
+with green_data as (
+    select *, 
+        'Green' as service_type 
+    from {{ ref('stg_green_tripdata') }}
+), 
+```
+* This snippet references the `sgt_green_tripdata` model that we've created before. Since a model outputs a table/view, we can use it in the `FROM` clause of any query.
+
+You may check out these more complex "core" models [in this link](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/week_4_analytics_engineering/taxi_rides_ny/models/core).
+
+>Note: running `dbt run` will run all models but NOT the seeds. The `dbt build` can be used instead to run all seeds and models as well as tests, which we will cover later. Additionally, running `dbt run --select my_model` will only run the model itself, but running `dbt run --select +my_model` will run the model as well as all of its dependencies.
+
+## Testing and Documenting dbt Models
+
+Testing and documenting are not required steps to successfully run models, but they are expected in any professional setting.
+
+## Testing
+
+Tests in dbt are ***assumptions*** that we make about our data.
+
+In dbt, tests are essentially a `SELECT` query that will return the amount of records that fail because they do not follow the assumption defined by the test.
+
+Tests are defined on a column in the model YAML files (like the `schema.yml` file we defined before). dbt provides a few predefined tests to check column values but custom tests can also be created as queries. Here's an example test:
+
+```yaml
+models:
+  - name: stg_yellow_tripdata
+    description: >
+        Trips made by New York City's iconic yellow taxis. 
+    columns:
+        - name: tripid
+        description: Primary key for this table, generated with a concatenation of vendorid+pickup_datetime
+        tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severrity: warn
+```
+* The tests are defined for a column in a specific table for a specific model.
+* There are 2 tests in this YAML file: `unique` and `not_null`. Both are predefined by dbt.
+* `unique` checks whether all the values in the `tripid` column are unique.
+* `not_null` checks whether all the values in the `tripid` column are not null.
+* Both tests will return a warning in the command line interface if they detect an error.
+
+Here's what the `not_null` will compile to in SQL query form:
+
+```sql
+select *
+from "my_project"."dbt_dev"."stg_yellow_tripdata"
+```
+
+You may run tests with the `dbt test` command.
+
+## Documentation
+
+dbt also provides a way to generate documentation for your dbt project and render it as a website.
+
+You may have noticed in the previous code block that a `description:` field can be added to the YAML field. dbt will make use of these fields to gather info.
+
+The dbt generated docs will include the following:
+* Information about the project:
+    * Model code (both from the .sql files and compiled code)
+    * Model dependencies
+    * Sources
+    * Auto generated DAGs from the `ref()` and `source()` macros
+    * Descriptions from the .yml files and tests
+* Information about the Data Warehouse (`information_schema`):
+    * Column names and data types
+    * Table stats like size and rows
+
+dbt docs can be generated on the cloud or locally with `dbt docs generate`, and can be hosted in dbt Cloud as well or on any other webserver with `dbt docs serve`.
+
 ## Acknowledgements
 
 * [Notes by Alvaro Navas](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md)
