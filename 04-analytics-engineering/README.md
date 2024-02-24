@@ -467,6 +467,23 @@ The dbt generated docs will include the following:
 
 dbt docs can be generated on the cloud or locally with `dbt docs generate`, and can be hosted in dbt Cloud as well or on any other webserver with `dbt docs serve`.
 
+## Conclusion
+
+My personal takeways from this section are (analytical engineering flow):
+* Unstructured data is loaded into the Data Lake (data ingestion).
+* The Data Lake is transformed into the Data Warehouse.
+  * For transforming, we can use workflows orchestrated by tools like Apache Airflow, Prefect, Dagster, Mage, etc.
+  * The stored data in warehouses are only data, that didn't have any business logic applied to it.
+  * So, we need to apply business logic to the data to make it useful for the business.
+* Data modeling is the process of applying business logic to the data.
+  * We can use dbt for this.
+  * dbt is a tool that allows us to write SQL code to transform the data.
+  * Fact tables and dimension tables are the main components of a data model.
+  * Fact tables contain the measures (built with star schema) and dimension tables contain the context (business entities).
+* After the data is modeled, we can visualize it to easily understand the data.
+  * We can use BI tools like Looker, Tableau, Power BI, etc.
+  * We can also use dbt to generate documentation for the data models.
+
 ## Acknowledgements
 
 * [Notes by Alvaro Navas](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md)
