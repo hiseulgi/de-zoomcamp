@@ -199,3 +199,5 @@ terraform.rc
 *.csv.gz
 *.csv
 *-keys.json
+
+05-batch/code/fhv/
