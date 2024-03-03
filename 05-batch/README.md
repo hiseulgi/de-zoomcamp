@@ -786,3 +786,12 @@ graph LR
 ```
 
 Shuffling isn't needed because each executor already has all of the necessary info to perform the join on each partition, thus speeding up the join operation by orders of magnitude.
+
+## Running Spark in the Clous
+
+TODO: add this section.
+
+## Acknowledgements
+
+- [DE Zoomcamp: Week 5 - Batch Processing](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/05-batch)
+- [Notes by Alvaro Navas](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/5_batch_processing.md#reading-csv-files)
