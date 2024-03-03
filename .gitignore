@@ -199,3 +199,9 @@ terraform.rc
 *.csv.gz
 *.csv
 *-keys.json
+*.parquet
+*.parquet.*
+_SUCCESS
+._SUCCESS.crc
+
+05-batch/code/fhv/
