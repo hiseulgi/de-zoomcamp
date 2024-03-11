@@ -1,0 +1,3 @@
+[submodule "risingwave-workshop"]
+	path = risingwave-workshop
+	url = https://github.com/hiseulgi/risingwave-workshop
